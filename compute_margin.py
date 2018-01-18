@@ -3,6 +3,7 @@ import numpy as np
 
 class margin():
     def __init__(self, logits, inputs_tensor, targets_tensor,
+                 sess,
                  other_placeholders = []):
         '''
         build the computation graph for distance computation
@@ -11,6 +12,7 @@ class margin():
         logits - the logit tensor in a network
         inputs_tensor - the input tensor in a network
         targets_tensor - the target tensor in a network
+        sess - tensorflow session
         other_placeholders - a list of other placeholders in the network
         '''
         
@@ -35,8 +37,8 @@ class margin():
         self.apply_gradients = self.optimizer.apply_gradients(self.compute_gradients)
         
         # define session
-        self.sess = tf.Session()
-        self.sess.run(tf.global_variables_initializer())
+        self.sess = sess
+        # self.sess.run(tf.global_variables_initializer())
 
     def compute_margin(self, inputs, targets,
                        other_placeholder_values = [],
@@ -59,7 +61,7 @@ class margin():
         
         l = self.sess.run(self.logits,
                           feed_dict = feed_dict)
-        
+        print(l)
         pred_class = np.argmax(l)
         
         # define closest distance

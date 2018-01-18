@@ -12,7 +12,7 @@ model.saver.restore(model.sess, "./tmp/model1.ckpt")
 
 # load compute_margin class
 from compute_margin import margin
-m = margin(model.logits, model.x, model.y_, [model.keep_prob])
+m = margin(model.logits, model.x, model.y_, model.sess, [model.keep_prob])
 
 # load data
 from tensorflow.examples.tutorials.mnist import input_data

@@ -36,9 +36,19 @@ class margin():
         self.compute_gradients = [(self.gradients, self.closest)]
         self.apply_gradients = self.optimizer.apply_gradients(self.compute_gradients)
         
+        # define logistic gradients
+        self.l_grad = [0] * self.num_classes
+        for c in xrange(self.num_classes):
+            self.l_grad[c] = tf.gradients(self.logits[0, c],
+                                          self.inputs_tensor)[0]
+        # define distance gradients
+        self.original_inputs = tf.placeholder(shape = inputs_tensor.get_shape(),
+                                              dtype = inputs_tensor.dtype)
+        self.dist = tf.reduce_sum(tf.square(self.closest - self.original_inputs))
+        self.d_grad = tf.gradients(self.dist, self.closest)[0]
+        
         # define session
         self.sess = sess
-        # self.sess.run(tf.global_variables_initializer())
 
     def compute_margin(self, inputs, targets,
                        other_placeholder_values = [],
@@ -56,12 +66,13 @@ class margin():
         a list of distances of the class boundaries
         '''
 
-        feed_dict = dict(zip([self.inputs_tensor, self.targets_tensor] + self.other_placeholders,
-                             [inputs, targets] + other_placeholder_values))
+        feed_dict = dict(zip([self.inputs_tensor, 
+                              self.targets_tensor, 
+                              self.original_inputs] + self.other_placeholders,
+                             [inputs, targets, inputs] + other_placeholder_values))
         
         l = self.sess.run(self.logits,
                           feed_dict = feed_dict)
-        print(l)
         pred_class = np.argmax(l)
         
         # define closest distance
@@ -77,22 +88,6 @@ class margin():
                 # set the vairable to the inputs
                 self.sess.run(tf.assign(self.closest, inputs), feed_dict = feed_dict)
                 
-                # gradient 1 is the gradient away from the boundary
-                grad1 = tf.gradients(tf.square(self.logits[0, pred_class] - self.logits[0, c]),
-                                     self.inputs_tensor)[0]
-                
-                # gradient 2 is the gradient away from inputs
-                grad2 = tf.gradients(closest_dist, self.closest)[0]
-                
-                # project gradient 2 onto the orthogonal space of grad1
-                proj = tf.reduce_sum(grad1 * grad2) / \
-                       tf.reduce_sum(tf.square(grad1)) * \
-                       grad1
-                grad2 = grad2 - proj
-                
-                # combine the two gradients to the final gradient
-                grad = grad1 + grad2
-                
                 # start gradient descent iterations
                 for i in xrange(num_iterations):
                     # evaluate the current values of closest
@@ -102,16 +97,34 @@ class margin():
                     feed_dict[self.inputs_tensor] = closest_value
                     
                     # run some statistics
-                    l_diff, cd = self.sess.run([self.logits[0, pred_class] - self.logits[0, c],
-                                                closest_dist],
-                                               feed_dict = feed_dict)
+                    l_pred, l_c, cd = self.sess.run([self.logits[0, pred_class],
+                                                     self.logits[0, c],
+                                                     self.dist],
+                                                    feed_dict = feed_dict)
+                    l_diff = l_pred - l_c
                     print('Iteration {}: logit diff = {}, distance = {}'.format(i, l_diff, cd))
                     
                     # compute gradients
-                    grad_value = self.sess.run(grad, feed_dict = feed_dict)
+                    l_grad_pred, l_grad_c = self.sess.run([self.l_grad[pred_class], 
+                                                           self.l_grad[c]], 
+                                                          feed_dict = feed_dict)
+                    # gradient 1 is the gradient away from the boundary
+                    grad1 = 2 * l_diff * (l_grad_pred - l_grad_c)
+                    
+                    # gradient 2 is the gradient away from inputs
+                    grad2 = self.sess.run(self.d_grad, feed_dict = feed_dict)
+                    
+                    # project gradient 2 onto the orthogonal space to grad1
+                    proj = np.sum(grad1 * grad2) / \
+                           np.sum(grad1 * grad1) * \
+                           grad1
+                    grad2 = grad2 - proj
+                    
+                    # combine the two gradients to the final gradient
+                    grad = grad1 + grad2
                     
                     # run gradient descent
-                    feed_dict[self.gradients] = grad_value
+                    feed_dict[self.gradients] = grad
                     self.sess.run(self.apply_gradients, 
                                   feed_dict = feed_dict)
                 

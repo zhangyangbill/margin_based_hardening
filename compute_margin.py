@@ -68,13 +68,15 @@ class margin():
         compute the closest points to the boundaries between other classes
 
         Args:
-        inputs - the input value, should be compatible with inputs_tensor
+        inputs - the input value, should be compatible with inputs_tensor, only support batch size 1
         targets - the target value of the network
         other_placeholder_values - a list of the values of other placeholders in the network
         num_iterations - number of iterations of gradient descent
     
         Returns:
-        a list of distances of the class boundaries
+        dist - a list of distances of the class boundaries
+        closest_point - a list of closest point on the boundary to the input points
+        pred_class - a scalar of predicted class
         '''
 
         feed_dict = dict(zip([self.inputs_tensor, 

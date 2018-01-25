@@ -19,8 +19,8 @@ from tensorflow.examples.tutorials.mnist import input_data
 mnist = input_data.read_data_sets('MNIST_data', one_hot=True)
 
 # run compute margin
-for i in xrange(4, 100):
-    batch = mnist.train.next_batch(1)
+for i in xrange(100, 200):
+    batch = mnist.test.next_batch(1)
     dist, closest_point, pred_class = m.compute_margin(batch[0], batch[1], [1],
                                                        num_iterations = 200)
     

@@ -38,7 +38,7 @@ for i in xrange(1):
     if not os.path.exists('/mnt/nfs/nfsshare/user_homes/zybill/results_imagenet/{}/'.format(i)):
         os.makedirs('/mnt/nfs/nfsshare/user_homes/zybill/results_imagenet/{}/'.format(i))
     with open('/mnt/nfs/nfsshare/user_homes/zybill/results_imagenet/{}/dist.txt'.format(i), 'w+') as f:
-        f.write('True class: {}, predicted class: {}, closest class: {}\n'.format([], pred_class, closest_class)
+        f.write('True class: {}, predicted class: {}, closest class: {}\n'.format([], pred_class, closest_class))
         for c in xrange(len(dist)):
             f.write('Distance to class {}: {}\n'.format(c, dist[c]))
     

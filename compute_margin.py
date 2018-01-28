@@ -24,12 +24,14 @@ class margin():
                                        shape = [1] + inputs_tensor.get_shape().as_list()[1:])
         
         # placeholders
+        print('Defining placeholders...')
         self.logits = logits
         self.inputs_tensor = inputs_tensor
         self.targets_tensor = targets_tensor
         self.other_placeholders = other_placeholders
         
         # create optimizer & graident placeholder
+        print('Creating optimizer and gradient placeholders...')
         self.optimizer = tf.train.GradientDescentOptimizer(0.01, name = 'optimizer')
         self.optimizer1 = tf.train.GradientDescentOptimizer(0.01, name = 'optimizer')
         self.gradients = tf.placeholder(shape = inputs_tensor.get_shape(),
@@ -39,6 +41,7 @@ class margin():
         self.apply_gradients1 = self.optimizer1.apply_gradients(self.compute_gradients)
         
         # define logistic gradients
+        print('Defining logits gradients...')
         self.l_grad = [0] * self.num_classes
         self.l_softmax_grad = [0] * self.num_classes
         self.logits_softmax = tf.nn.softmax(self.logits)
@@ -47,8 +50,10 @@ class margin():
                                           self.inputs_tensor)[0]
             self.l_softmax_grad[c] = tf.gradients(self.logits_softmax[0, c],
                                                   self.inputs_tensor)[0]
+            print('Class {} completed'.format(c))
             
         # define distance gradients
+        print('Defining distance metric and its gradients...')
         self.original_inputs = tf.placeholder(shape = inputs_tensor.get_shape(),
                                               dtype = inputs_tensor.dtype)
         self.dist = tf.reduce_sum(tf.square(self.closest - self.original_inputs))

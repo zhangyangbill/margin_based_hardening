@@ -12,7 +12,7 @@ model.saver.restore(model.sess, "./tmp/model1.ckpt")
 
 # load compute_margin class
 from compute_margin import margin
-m = margin(model.logits, model.x, model.y_, model.sess, [model.keep_prob])
+m = margin(model.logits, model.x, model.sess, [model.y_, model.keep_prob])
 
 # load data
 from tensorflow.examples.tutorials.mnist import input_data
@@ -21,7 +21,7 @@ mnist = input_data.read_data_sets('MNIST_data', one_hot=True)
 # run compute margin
 for i in xrange(100, 200):
     batch = mnist.test.next_batch(1)
-    dist, closest_point, pred_class = m.compute_margin(batch[0], batch[1], [1],
+    dist, closest_point, pred_class = m.compute_margin(batch[0], [batch[1], 1],
                                                        num_iterations = 200)
     
     # save data

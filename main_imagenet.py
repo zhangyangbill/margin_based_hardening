@@ -49,8 +49,8 @@ for i in xrange(100):
     plt.savefig(write_dir+'{}_or_{}.jpg'.format(i, a[0][0][1]))
     
     # compute the margins
-    dist, closest_point, pred_class, adv_class = m.compute_margin_fast(image, [False],
-                                                                       num_iterations = 200)
+    dist, closest_point, pred_class, adv_class, l_diff = m.compute_margin_fast(image, [False],
+                                                                               num_iterations = 200)
 
     # obtain the adversarial class
     preds = np.zeros((1, m.num_classes))
@@ -67,8 +67,8 @@ for i in xrange(100):
 
     # plot image
     plt.imshow(cp)
-    if dist < 0.01:
-        plt.savefig(write_dir+'{}_ad_{}.jpg'.format(i, a[0][0][1]))
+    if l_diff < 0.01:
+        plt.savefig(write_dir+'{}_ad_{}_dist{}.jpg'.format(i, a[0][0][1], dist))
     else:
         plt.savefig(write_dir+'{}_adfail_{}.jpg'.format(i, a[0][0][1]))
         

@@ -286,6 +286,6 @@ class margin():
             
             adv_class = c
                 
-        return dist, closest_point, pred_class, adv_class
+        return dist, closest_point, pred_class, adv_class, l_diff
                 
             

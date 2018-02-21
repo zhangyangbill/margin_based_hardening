@@ -156,8 +156,9 @@ class margin():
         return dist, closest_point, pred_class
     
     def compute_margin_fast(self, inputs,
-                       other_placeholder_values = [],
-                       num_iterations = 200):
+                            other_placeholder_values = [],
+                            num_iterations = 200,
+                            top = 1):
         ''' 
         compute the closest points to the boundaries between other classes
 
@@ -165,6 +166,7 @@ class margin():
         inputs - the input value, should be compatible with inputs_tensor
         other_placeholder_values - a list of the values of other placeholders in the network
         num_iterations - number of iterations of gradient descent
+        top - the number of top classes that are not considered as adversarial class
     
         Returns:
         a list of distances of the class boundaries
@@ -176,8 +178,7 @@ class margin():
         
         l = self.sess.run(self.logits,
                           feed_dict = feed_dict)
-        pred_class = np.argmax(l)
-        second_largest_class = np.argpartition(l, -2)[0, -2]
+        top_classes = np.argpartition(l, -top)[0, -top:]
         
         
         # set the vairable to the inputs
@@ -223,18 +224,23 @@ class margin():
             # evaluate the current values of closest
             closest_value = self.closest.eval(session = self.sess)
 
-            # modify feed_dict
+            # evaluate the logit at largest point
             feed_dict[self.inputs_tensor] = closest_value
-
-            # locate the largest two classes of logits
             l = self.sess.run(self.logits,
                              feed_dict = feed_dict)
-            l_part = np.argpartition(l, -2)
-            # locate the largest non-pred_class class
-            if l_part[0, -1] == pred_class:
-                c = l_part[0, -2]
-            else:
-                c = l_part[0, -1]
+            l_argpart = np.argpartition(l, -2)[0, -top-1: ]
+            
+            # locate the pred class
+            l_argtops = np.intersect1d(l_argpart, top_classes) # find the top classes
+            l_tops = l[0, l_argtops]
+            _top = np.argmax(l_tops)
+            pred_class = l_argtops[_top]
+            
+            # locate the adversarial class
+            l_argadvs = np.setdiff1d(l_argpart, top_classes) # find the non top classes
+            l_advs = l[0, l_argadvs]
+            _adv = np.argmax(l_advs)
+            c = l_argadvs[_adv]
             
             # run some statistics
             l_diff = l[0, pred_class] - l[0, c]
@@ -255,7 +261,7 @@ class margin():
             # compute the norm of gradient 1 to adjust learning rate
             if i == 0:
                 grad1_norm = np.sqrt(np.sum(grad1 ** 2))
-                feed_dict[self.learning_rate] = 1 / grad1_norm
+                feed_dict[self.learning_rate] = 3 / grad1_norm
 
             # gradient 2 is the gradient away from inputs
             grad2 = self.sess.run(self.d_grad, feed_dict = feed_dict)

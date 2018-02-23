@@ -3,7 +3,7 @@
 import tensorflow as tf
 import numpy as np
 import matplotlib
-#matplotlib.use('Agg')
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import urllib, cStringIO
 import os

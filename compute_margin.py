@@ -30,10 +30,10 @@ class margin():
         
         # create optimizer & graident placeholder
         print('Creating optimizer and gradient placeholders...')
-        self.learning_rate = tf.constant(10)
+        self.learning_rate = tf.constant(1)
         self.learning_rate1 = tf.constant(0.01)
-        self.optimizer = tf.train.GradientDescentOptimizer(learning_rate = self.learning_rate, name = 'optimizer')
-        self.optimizer1 = tf.train.GradientDescentOptimizer(learning_rate = self.learning_rate1, name = 'optimizer')
+        self.optimizer = tf.train.AdagradOptimizer(learning_rate = self.learning_rate, name = 'optimizer')
+        self.optimizer1 = tf.train.AdagradOptimizer(learning_rate = self.learning_rate1, name = 'optimizer')
         self.gradients = tf.placeholder(shape = inputs_tensor.get_shape(),
                                         dtype = tf.float32)
         self.compute_gradients = [(self.gradients, self.closest)]
@@ -251,14 +251,6 @@ class margin():
             l_diff = l[0, pred_class] - l[0, c]
             self.l_diff_q[i % self.q_len] = l_diff
             
-            # adjust learning rate
-            if i < 100 and i > 1 and \
-                self.l_diff_q[i % self.q_len] > 0 and \
-               (self.l_diff_q[i % self.q_len] - self.l_diff_q[(i-1) % self.q_len]) / self.l_diff_q[i % self.q_len] > -0.01:
-                
-                feed_dict[self.learning_rate] *= 1.1
-            print feed_dict[self.learning_rate]
-            
             # run some statistics
             cd = self.sess.run(self.dist,
                                feed_dict = feed_dict)
@@ -272,8 +264,8 @@ class margin():
             l_grad_c = self.sess.run(self.l_grad, 
                                      feed_dict = feed_dict)
             # gradient 1 is the gradient away from the boundary
-            # grad1 = 2 * l_diff * (l_grad_pred - l_grad_c)
-            grad1 = np.sign(l_diff) * (l_grad_pred - l_grad_c)
+            grad1 = 2 * l_diff * (l_grad_pred - l_grad_c)
+            # grad1 = np.sign(l_diff) * (l_grad_pred - l_grad_c)
 
             # gradient 2 is the gradient away from inputs
             grad2 = self.sess.run(self.d_grad, feed_dict = feed_dict)

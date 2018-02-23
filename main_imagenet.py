@@ -50,7 +50,8 @@ for i in xrange(100):
     
     # compute the margins
     dist, closest_point, pred_class, adv_class, l_diff = m.compute_margin_fast(image, [False],
-                                                                               num_iterations = 200)
+                                                                               num_iterations = 300,
+                                                                               top = 50)
 
     # obtain the adversarial class
     preds = np.zeros((1, m.num_classes))

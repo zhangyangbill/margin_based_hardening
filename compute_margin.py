@@ -30,9 +30,10 @@ class margin():
         
         # create optimizer & graident placeholder
         print('Creating optimizer and gradient placeholders...')
-        self.learning_rate = tf.constant(0.01)
+        self.learning_rate = tf.constant(10)
+        self.learning_rate1 = tf.constant(0.01)
         self.optimizer = tf.train.GradientDescentOptimizer(learning_rate = self.learning_rate, name = 'optimizer')
-        self.optimizer1 = tf.train.GradientDescentOptimizer(learning_rate = 0.01, name = 'optimizer')
+        self.optimizer1 = tf.train.GradientDescentOptimizer(learning_rate = self.learning_rate1, name = 'optimizer')
         self.gradients = tf.placeholder(shape = inputs_tensor.get_shape(),
                                         dtype = tf.float32)
         self.compute_gradients = [(self.gradients, self.closest)]
@@ -62,6 +63,10 @@ class margin():
         
         # initialize optimizer variables
         self.sess.run(tf.variables_initializer([var for var in tf.global_variables() if 'optimizer' in var.name]))
+        
+        # a queue to store all the l_diff
+        self.q_len = 10
+        self.l_diff_q = np.zeros(10)
 
     def compute_margin(self, inputs,
                        other_placeholder_values = [],
@@ -175,6 +180,7 @@ class margin():
         feed_dict = dict(zip([self.inputs_tensor,
                               self.original_inputs] + self.other_placeholders,
                              [inputs, inputs] + other_placeholder_values))
+        feed_dict[self.learning_rate] = 10
         
         l = self.sess.run(self.logits,
                           feed_dict = feed_dict)
@@ -242,8 +248,18 @@ class margin():
             _adv = np.argmax(l_advs)
             c = l_argadvs[_adv]
             
-            # run some statistics
             l_diff = l[0, pred_class] - l[0, c]
+            self.l_diff_q[i % self.q_len] = l_diff
+            
+            # adjust learning rate
+            if i < 100 and i > 1 and \
+                self.l_diff_q[i % self.q_len] > 0 and \
+               (self.l_diff_q[i % self.q_len] - self.l_diff_q[(i-1) % self.q_len]) / self.l_diff_q[i % self.q_len] > -0.01:
+                
+                feed_dict[self.learning_rate] *= 1.1
+            print feed_dict[self.learning_rate]
+            
+            # run some statistics
             cd = self.sess.run(self.dist,
                                feed_dict = feed_dict)
             print('Iteration {}: on boundary against class {}, logit diff = {}, distance = {}'.format(i, c, l_diff, cd))
@@ -256,29 +272,34 @@ class margin():
             l_grad_c = self.sess.run(self.l_grad, 
                                      feed_dict = feed_dict)
             # gradient 1 is the gradient away from the boundary
-            grad1 = 2 * l_diff * (l_grad_pred - l_grad_c)
-            
-            # compute the norm of gradient 1 to adjust learning rate
-            if i == 0:
-                grad1_norm = np.sqrt(np.sum(grad1 ** 2))
-                feed_dict[self.learning_rate] = 3 / grad1_norm
+            # grad1 = 2 * l_diff * (l_grad_pred - l_grad_c)
+            grad1 = np.sign(l_diff) * (l_grad_pred - l_grad_c)
 
             # gradient 2 is the gradient away from inputs
             grad2 = self.sess.run(self.d_grad, feed_dict = feed_dict)
 
             # project gradient 2 onto the orthogonal space to grad1
-            proj = np.sum(grad1 * grad2) / \
-            np.sum(grad1 * grad1) * \
-            grad1
+            grad1_dir = l_grad_pred - l_grad_c
+            proj = np.sum(grad1_dir * grad2) / \
+            np.sum(grad1_dir * grad1_dir) * \
+            grad1_dir
             grad2 = grad2 - proj
 
+            
             # run gradient descent
-            feed_dict[self.gradients] = grad1
-            self.sess.run(self.apply_gradients, 
-                          feed_dict = feed_dict)
-            feed_dict[self.gradients] = grad2
-            self.sess.run(self.apply_gradients1, 
-                          feed_dict = feed_dict)
+            if i < 100:
+                feed_dict[self.gradients] = grad1
+                self.sess.run(self.apply_gradients, 
+                              feed_dict = feed_dict)
+            else:
+                if i % 2 == 0:
+                    feed_dict[self.gradients] = grad1
+                    self.sess.run(self.apply_gradients, 
+                                  feed_dict = feed_dict)
+                else:
+                    feed_dict[self.gradients] = grad2
+                    self.sess.run(self.apply_gradients1, 
+                                  feed_dict = feed_dict)
 
 
             ## final evaluation

@@ -1,8 +1,9 @@
+
 # load mudules
 import tensorflow as tf
 import numpy as np
 import matplotlib
-matplotlib.use('Agg')
+#matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import urllib, cStringIO
 import os
@@ -18,9 +19,11 @@ m = margin(tf.log(model.output), model.input, K.get_session(), [K.learning_phase
 # open the file
 i = 0
 f = open('/mnt/nfs/nfsshare/user_homes/zybill/imagenet_data/fall11_urls.txt')
+#f = open('./imagenet_data/fall11_urls.txt')
 
 # make the write directory
 write_dir = '/mnt/nfs/nfsshare/user_homes/zybill/results_imagenet/'
+#write_dir = './results/imagenet_adversarials/'
 if not os.path.exists(write_dir):
     os.makedirs(write_dir)
 
@@ -50,7 +53,7 @@ for i in xrange(100):
     
     # compute the margins
     dist, closest_point, pred_class, adv_class, l_diff = m.compute_margin_fast(image, [False],
-                                                                               num_iterations = 300,
+                                                                               num_iterations = 500,
                                                                                top = 50)
 
     # obtain the adversarial class
